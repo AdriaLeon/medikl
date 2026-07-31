@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# TypeScript output
+dist/
+
+# Environment
+.env
+.env.*
+
+# IDEs
+.vscode/
+.idea/
+
+# Docker
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+*.temp
