@@ -1,0 +1,20 @@
+@host = http://localhost:3000
+
+### Test server
+GET {{host}}/
+
+###
+
+### Insert patient
+POST {{host}}/patients
+Content-Type: application/json
+
+{
+    "name": "Plingo",
+    "age": 35
+}
+
+###
+
+### Get all patients
+GET {{host}}/patients/6
