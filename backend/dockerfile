@@ -1,0 +1,22 @@
+FROM node:22-alpine
+
+# Set working directory inside the container
+WORKDIR /app
+
+# Copy dependency definitions from the backend folder
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy backend source code (src/, tsconfig.json, etc.)
+COPY . .
+
+# Compile TypeScript to dist/
+RUN npm run build
+
+# Expose backend port
+EXPOSE 3000
+
+# Start backend node process
+CMD ["npm", "start"]
