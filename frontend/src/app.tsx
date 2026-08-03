@@ -42,6 +42,17 @@ export default function App() {
     }
   };
 
+  const handleDeletePatient = async (id: number) => {
+    try {
+      const res = await fetch(`/api/patients/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Failed to delete patient #${id}`);
+      setError(null);
+      refreshPatients();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   // Render Visits View if a patient is selected
   if (selectedPatientId !== null) {
     return (
@@ -71,6 +82,7 @@ export default function App() {
         patients={patients}
         loading={loading}
         onSelectPatient={(id) => setSelectedPatientId(id)}
+        onDeletePatient={handleDeletePatient}
         onDeleteAll={handleDeleteAll}
       />
     </div>
