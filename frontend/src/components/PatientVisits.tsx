@@ -11,23 +11,50 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPatientDetails = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/patients/${patientId}`);
-        if (!res.ok) throw new Error('Failed to load patient visits');
-        const data = await res.json();
-        setPatient(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Form State for New Visit
+  const [speciality, setSpeciality] = useState('');
+  const [description, setDescription] = useState('');
 
+  const fetchPatientDetails = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/patients/${patientId}`);
+      if (!res.ok) throw new Error('Failed to load patient details');
+      const data = await res.json();
+      setPatient(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPatientDetails();
   }, [patientId]);
+
+  const handleAddVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!speciality) return;
+
+    try {
+      const res = await fetch(`/api/patients/${patientId}/visits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ speciality, description }),
+      });
+
+      if (!res.ok) throw new Error('Failed to add visit');
+
+      // Reset form and reload patient details to see the new visit
+      setSpeciality('');
+      setDescription('');
+      fetchPatientDetails();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   return (
     <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif' }}>
@@ -56,6 +83,29 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
             <p style={{ margin: 0 }}><strong>Age:</strong> {patient.age}</p>
             <p style={{ margin: '4px 0 0 0' }}><strong>ID:</strong> #{patient.id}</p>
           </div>
+
+          {/* New Visit Form */}
+          <h3>Add New Visit</h3>
+          <form onSubmit={handleAddVisit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>
+            <input
+              type="text"
+              placeholder="Speciality (e.g. Cardiology, Dermatology)"
+              value={speciality}
+              onChange={(e) => setSpeciality(e.target.value)}
+              required
+              style={{ padding: '8px' }}
+            />
+            <textarea
+              placeholder="Visit description or clinical notes"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              style={{ padding: '8px', fontFamily: 'inherit' }}
+            />
+            <button type="submit" style={{ padding: '10px', backgroundColor: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+              Record Visit (Current Time)
+            </button>
+          </form>
 
           <h3>Visits History</h3>
 
