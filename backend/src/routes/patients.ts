@@ -80,10 +80,15 @@ router.post("/", async (req, res) => {
 router.post("/:id/visits", async (req, res) => {
     try {
         const { id } = req.params;
-        const { speciality, description } = req.body;
+        const { speciality, description, visitDate } = req.body;
 
         if (!speciality) {
             res.status(400).json({ error: "Speciality is required" });
+            return;
+        }
+
+        if (!visitDate) {
+            res.status(400).json({ error: "Visit date is required" });
             return;
         }
 
@@ -97,8 +102,8 @@ router.post("/:id/visits", async (req, res) => {
         // Use NOW() in MySQL to record the current timestamp automatically
         const [result]: any = await db.execute(
             `INSERT INTO visits (patient_id, speciality, description, visit_date, completed) 
-             VALUES (?, ?, ?, NOW(), FALSE)`,
-            [id, speciality, description || ""]
+             VALUES (?, ?, ?, ?, FALSE)`,
+            [id, speciality, description || "", visitDate]
         );
 
         res.status(201).json({
@@ -139,6 +144,29 @@ router.delete("/:id", async (req, res) => {
         }
 
         res.json({ message: `Patient #${id} and associated visits deleted successfully` });
+    } catch (err: any) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH /patients/:id/visits/:visitId
+router.patch("/:id/visits/:visitId", async (req, res) => {
+    try {
+        const { visitId } = req.params;
+        const { completed } = req.body;
+
+        const [result]: any = await db.execute(
+            "UPDATE visits SET completed = ? WHERE id = ?",
+            [completed, visitId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Visit not found" });
+        }
+
+        res.json({ message: "Visit updated successfully" });
+
     } catch (err: any) {
         console.error(err);
         res.status(500).json({ error: err.message });

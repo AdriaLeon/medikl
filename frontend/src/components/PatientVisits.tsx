@@ -14,6 +14,7 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
   // Form State for New Visit
   const [speciality, setSpeciality] = useState('');
   const [description, setDescription] = useState('');
+  const [visitDate, setVisitDate] = useState("");
 
   const fetchPatientDetails = async () => {
     try {
@@ -42,7 +43,7 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
       const res = await fetch(`/api/patients/${patientId}/visits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ speciality, description }),
+        body: JSON.stringify({ speciality, description, visitDate }),
       });
 
       if (!res.ok) throw new Error('Failed to add visit');
@@ -50,6 +51,33 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
       // Reset form and reload patient details to see the new visit
       setSpeciality('');
       setDescription('');
+      setVisitDate('');
+      fetchPatientDetails();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleToggleCompleted = async (
+    visitId: number,
+    completed: boolean
+  ) => {
+    try {
+      const res = await fetch(
+        `/api/patients/${patientId}/visits/${visitId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            completed: !completed,
+          }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to update visit");
+
       fetchPatientDetails();
     } catch (err: any) {
       setError(err.message);
@@ -102,8 +130,15 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
               rows={3}
               style={{ padding: '8px', fontFamily: 'inherit' }}
             />
+            <input
+            type="datetime-local"
+            value={visitDate}
+            onChange={(e) => setVisitDate(e.target.value)}
+            required
+            style={{ padding: "8px" }}
+            />
             <button type="submit" style={{ padding: '10px', backgroundColor: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-              Record Visit (Current Time)
+              Record Visit
             </button>
           </form>
 
@@ -123,12 +158,34 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
                     marginBottom: '10px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                    <span>{visit.speciality}</span>
-                    <span style={{ color: visit.completed ? 'green' : 'orange' }}>
-                      {visit.completed ? 'Completed' : 'Pending'}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <span>{visit.speciality}</span>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span
+                      style={{
+                        color: Boolean(visit.completed) ? "green" : "orange",
+                      }}
+                    >
+                      {Boolean(visit.completed) ? "Completed" : "Pending"}
                     </span>
+
+                    <input
+                      type="checkbox"
+                      checked={Boolean(visit.completed)}
+                      onChange={() =>
+                        handleToggleCompleted(visit.id, Boolean(visit.completed))
+                      }
+                    />
                   </div>
+                </div>
                   <p style={{ margin: '8px 0', color: '#444' }}>{visit.description}</p>
                   <small style={{ color: '#888' }}>
                     Date: {new Date(visit.visit_date).toLocaleString()}
