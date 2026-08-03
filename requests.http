@@ -11,7 +11,7 @@ Content-Type: application/json
 
 {
     "name": "Plingo",
-    "age": 35
+    "age": 12
 }
 
 ###

@@ -1,20 +1,16 @@
-import React, { useEffect, useState } from 'react';
-
-interface Patient {
-  id: number;
-  name: string;
-  age: number;
-} 
+import { useEffect, useState } from 'react';
+import { Patient } from './types/patient';
+import { PatientForm } from './components/PatientForm';
+import { PatientList } from './components/PatientList';
+import { PatientVisitsView } from './components/PatientVisits';
 
 export default function App() {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all patients on component mount
-  const fetchPatients = async () => {
+  const refreshPatients = async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/patients');
@@ -30,85 +26,53 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchPatients();
+    refreshPatients();
   }, []);
 
-  // Handle new patient creation
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !age) return;
+  const handleDeleteAll = async () => {
+    if (!window.confirm('Are you sure you want to delete ALL patients?')) return;
 
     try {
-      const res = await fetch('/api/patients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, age: Number(age) }),
-      });
-
-      if (!res.ok) throw new Error('Failed to create patient');
-
-      // Clear input fields and refresh list
-      setName('');
-      setAge('');
-      fetchPatients();
+      const res = await fetch('/api/patients', { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete patients');
+      setError(null);
+      refreshPatients();
     } catch (err: any) {
       setError(err.message);
     }
   };
 
+  // Render Visits View if a patient is selected
+  if (selectedPatientId !== null) {
+    return (
+      <PatientVisitsView
+        patientId={selectedPatientId}
+        onBack={() => setSelectedPatientId(null)}
+      />
+    );
+  }
+
+  // Render Main Dashboard
   return (
     <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif' }}>
       <h1>Medikl - Patient Management</h1>
 
-      {/* Form to add a new patient */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <input
-          type="text"
-          placeholder="Patient Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          style={{ flex: '2', padding: '8px' }}
-        />
-        <input
-          type="number"
-          placeholder="Age"
-          value={age}
-          onChange={(e) => setAge(e.target.value)}
-          required
-          style={{ flex: '1', padding: '8px' }}
-        />
-        <button type="submit" style={{ padding: '8px 16px', cursor: 'pointer' }}>
-          Add Patient
-        </button>
-      </form>
+      <PatientForm
+        onPatientCreated={refreshPatients}
+        onError={(err) => setError(err)}
+      />
 
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
 
-      {/* Patient List */}
       <h2>Patient List</h2>
-      {loading ? (
-        <p>Loading patients...</p>
-      ) : patients.length === 0 ? (
-        <p>No patients found.</p>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {patients.map((p) => (
-            <li
-              key={p.id}
-              style={{
-                padding: '10px',
-                borderBottom: '1px solid #ccc',
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}
-            >
-              <span><strong>#{p.id}</strong> {p.name}</span>
-              <span>{p.age} years old</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <p style={{ fontSize: '0.9em', color: '#666' }}>Click on a patient to view their visits.</p>
+
+      <PatientList
+        patients={patients}
+        loading={loading}
+        onSelectPatient={(id) => setSelectedPatientId(id)}
+        onDeleteAll={handleDeleteAll}
+      />
     </div>
   );
 }
