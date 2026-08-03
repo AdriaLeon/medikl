@@ -84,6 +84,25 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
     }
   };
 
+  const handleDeleteVisit = async (visitId: number) => {
+    if (!window.confirm("Delete this visit?")) return;
+
+    try {
+      const res = await fetch(
+        `/api/patients/${patientId}/visits/${visitId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to delete visit");
+
+      fetchPatientDetails();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif' }}>
       <button
@@ -186,10 +205,35 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
                     />
                   </div>
                 </div>
-                  <p style={{ margin: '8px 0', color: '#444' }}>{visit.description}</p>
+                  <p style={{ margin: '8px 0', color: '#444' }}>
+                    {visit.description}
+                  </p>
+
                   <small style={{ color: '#888' }}>
                     Date: {new Date(visit.visit_date).toLocaleString()}
                   </small>
+
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      display: "flex",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <button
+                      onClick={() => handleDeleteVisit(visit.id)}
+                      style={{
+                        padding: "6px 12px",
+                        backgroundColor: "#dc3545",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Delete Visit
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

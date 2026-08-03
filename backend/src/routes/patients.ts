@@ -173,4 +173,27 @@ router.patch("/:id/visits/:visitId", async (req, res) => {
     }
 });
 
+// DELETE /patients/:id/visits/:visitId
+router.delete("/:id/visits/:visitId", async (req, res) => {
+    try {
+        const { id, visitId } = req.params;
+
+        const [result]: any = await db.execute(
+            "DELETE FROM visits WHERE id = ? AND patient_id = ?",
+            [visitId, id]
+        );
+
+        if (result.affectedRows === 0) {
+            res.status(404).json({ error: "Visit not found" });
+            return;
+        }
+
+        res.json({ message: "Visit deleted successfully" });
+
+    } catch (err: any) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 export default router; // Export it so we can use it in app.ts
