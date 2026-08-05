@@ -13,3 +13,12 @@ CREATE TABLE IF NOT EXISTS visits (
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE -- If the patient is deleted, delete their visits as well
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'doctor') DEFAULT 'doctor',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
