@@ -121,9 +121,6 @@ export default function App() {
         />
       )}
 
-      {/* Render Profile View */}
-      {currentView === 'profile' && user && <UserProfile />}
-
       {/* Render Visits View */}
       {currentView === 'dashboard' && selectedPatientId !== null && (
         <PatientVisitsView
@@ -131,6 +128,9 @@ export default function App() {
           onBack={() => setSelectedPatientId(null)}
         />
       )}
+
+      {/* Render Profile View */}
+      {currentView === 'profile' && user && <UserProfile user={user} />}
 
       {/* Render Main Dashboard */}
       {currentView === 'dashboard' && selectedPatientId === null && (
