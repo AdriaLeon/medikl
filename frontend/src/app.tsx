@@ -125,11 +125,12 @@ export default function App() {
       {currentView === 'dashboard' && selectedPatientId !== null && (
         <PatientVisitsView
           patientId={selectedPatientId}
+          user={user}
           onBack={() => setSelectedPatientId(null)}
         />
       )}
 
-      {/* Render Profile View */}
+      {/* Render Profile View with VisitList integration */}
       {currentView === 'profile' && user && <UserProfile user={user} />}
 
       {/* Render Main Dashboard */}
@@ -150,6 +151,7 @@ export default function App() {
           <PatientList
             patients={patients}
             loading={loading}
+            user={user}
             onSelectPatient={(id) => setSelectedPatientId(id)}
             onDeletePatient={handleDeletePatient}
             onDeleteAll={handleDeleteAll}

@@ -9,7 +9,9 @@ export interface Visit {
   speciality: string;
   description: string;
   visit_date: string;
-  completed: boolean | number;
+  completed: boolean;
+  doctor_id: number;
+  doctor_name?: string;
 }
 
 export interface PatientDetails extends Patient {

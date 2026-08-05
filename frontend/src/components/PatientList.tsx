@@ -1,9 +1,16 @@
 import React from 'react';
 import { Patient } from '../types/patient';
 
+interface User {
+  id: number;
+  username: string;
+  role: 'admin' | 'doctor';
+}
+
 interface PatientListProps {
   patients: Patient[];
   loading: boolean;
+  user: User | null; // <-- Pass user object here
   onSelectPatient: (id: number) => void;
   onDeletePatient: (id: number) => void;
   onDeleteAll: () => void;
@@ -12,6 +19,7 @@ interface PatientListProps {
 export const PatientList: React.FC<PatientListProps> = ({
   patients,
   loading,
+  user,
   onSelectPatient,
   onDeletePatient,
   onDeleteAll,
@@ -46,7 +54,6 @@ export const PatientList: React.FC<PatientListProps> = ({
 
             <button
               onClick={(e) => {
-                // Prevent clicking the button from triggering onSelectPatient on the parent <li>
                 e.stopPropagation();
                 if (window.confirm(`Delete patient #${p.id} (${p.name}) and all their visits?`)) {
                   onDeletePatient(p.id);
@@ -68,21 +75,24 @@ export const PatientList: React.FC<PatientListProps> = ({
         ))}
       </ul>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-        <button
-          onClick={onDeleteAll}
-          style={{
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            padding: '8px 12px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          Delete All
-        </button>
-      </div>
+      {/* Conditionally render Delete All button for Admins only */}
+      {user?.role === 'admin' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button
+            onClick={onDeleteAll}
+            style={{
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              padding: '8px 12px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Delete All
+          </button>
+        </div>
+      )}
     </>
   );
 };

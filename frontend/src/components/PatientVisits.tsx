@@ -1,20 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { PatientDetails } from '../types/patient';
 
+interface Doctor {
+  id: number;
+  username: string;
+}
+
 interface PatientVisitsViewProps {
   patientId: number;
   onBack: () => void;
+  user: { id: number; username: string; role: 'admin' | 'doctor' } | null;
 }
 
-export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId, onBack }) => {
+export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId, onBack, user }) => {
   const [patient, setPatient] = useState<PatientDetails | null>(null);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Form State for New Visit
   const [speciality, setSpeciality] = useState('');
   const [description, setDescription] = useState('');
-  const [visitDate, setVisitDate] = useState("");
+  const [visitDate, setVisitDate] = useState('');
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
 
   const fetchPatientDetails = async () => {
     try {
@@ -23,7 +31,6 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
       if (!res.ok) throw new Error('Failed to load patient details');
       const data = await res.json();
       setPatient(data);
-      setError(null);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -31,72 +38,54 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
     }
   };
 
+  const fetchDoctors = async () => {
+    try {
+      const res = await fetch('/api/users/doctors');
+      if (res.ok) {
+        const data = await res.json();
+        setDoctors(data);
+      }
+    } catch (err: any) {
+      console.error('Failed to load doctors list', err);
+    }
+  };
+
   useEffect(() => {
     fetchPatientDetails();
+    fetchDoctors();
   }, [patientId]);
+
+  const canManageVisits = user && (user.role === 'admin' || user.role === 'doctor');
 
   const handleAddVisit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!speciality) return;
+    if (!speciality || !visitDate || !selectedDoctorId) return;
 
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch(`/api/patients/${patientId}/visits`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ speciality, description, visitDate }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          speciality,
+          description,
+          visitDate,
+          doctorId: Number(selectedDoctorId),
+        }),
       });
 
-      if (!res.ok) throw new Error('Failed to add visit');
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to add visit');
+      }
 
-      // Reset form and reload patient details to see the new visit
       setSpeciality('');
       setDescription('');
       setVisitDate('');
-      fetchPatientDetails();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleToggleCompleted = async (
-    visitId: number,
-    completed: boolean
-  ) => {
-    try {
-      const res = await fetch(
-        `/api/patients/${patientId}/visits/${visitId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            completed: !completed,
-          }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to update visit");
-
-      fetchPatientDetails();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleDeleteVisit = async (visitId: number) => {
-    if (!window.confirm("Delete this visit?")) return;
-
-    try {
-      const res = await fetch(
-        `/api/patients/${patientId}/visits/${visitId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to delete visit");
-
+      setSelectedDoctorId('');
       fetchPatientDetails();
     } catch (err: any) {
       setError(err.message);
@@ -131,35 +120,58 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
             <p style={{ margin: '4px 0 0 0' }}><strong>ID:</strong> #{patient.id}</p>
           </div>
 
-          {/* New Visit Form */}
-          <h3>Add New Visit</h3>
-          <form onSubmit={handleAddVisit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>
-            <input
-              type="text"
-              placeholder="Speciality (e.g. Cardiology, Dermatology)"
-              value={speciality}
-              onChange={(e) => setSpeciality(e.target.value)}
-              required
-              style={{ padding: '8px' }}
-            />
-            <textarea
-              placeholder="Visit description or clinical notes"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              style={{ padding: '8px', fontFamily: 'inherit' }}
-            />
-            <input
-            type="datetime-local"
-            value={visitDate}
-            onChange={(e) => setVisitDate(e.target.value)}
-            required
-            style={{ padding: "8px" }}
-            />
-            <button type="submit" style={{ padding: '10px', backgroundColor: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-              Record Visit
-            </button>
-          </form>
+          {/* New Visit Form - Visible only to Logged-in Admins and Doctors */}
+          {canManageVisits ? (
+            <>
+              <h3>Add New Visit</h3>
+              <form onSubmit={handleAddVisit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>
+                <input
+                  type="text"
+                  placeholder="Speciality (e.g. Cardiology, Dermatology)"
+                  value={speciality}
+                  onChange={(e) => setSpeciality(e.target.value)}
+                  required
+                  style={{ padding: '8px' }}
+                />
+
+                <select
+                  value={selectedDoctorId}
+                  onChange={(e) => setSelectedDoctorId(e.target.value)}
+                  required
+                  style={{ padding: '8px' }}
+                >
+                  <option value="">Select Responsible Doctor...</option>
+                  {doctors.map((doc) => (
+                    <option key={doc.id} value={doc.id}>
+                      Dr. {doc.username}
+                    </option>
+                  ))}
+                </select>
+
+                <textarea
+                  placeholder="Visit description or clinical notes"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  style={{ padding: '8px', fontFamily: 'inherit' }}
+                />
+                <input
+                  type="datetime-local"
+                  value={visitDate}
+                  onChange={(e) => setVisitDate(e.target.value)}
+                  required
+                  style={{ padding: '8px' }}
+                />
+                <button type="submit" style={{ padding: '10px', backgroundColor: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                  Record Visit
+                </button>
+              </form>
+            </>
+          ) : (
+            <p style={{ color: '#666', fontStyle: 'italic', marginBottom: '20px' }}>
+              Please log in as a Doctor or Admin to record new patient visits.
+            </p>
+          )}
 
           <h3>Visits History</h3>
 
@@ -177,63 +189,21 @@ export const PatientVisitsView: React.FC<PatientVisitsViewProps> = ({ patientId,
                     marginBottom: '10px',
                   }}
                 >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <span>{visit.speciality}</span>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span
-                      style={{
-                        color: Boolean(visit.completed) ? "green" : "orange",
-                      }}
-                    >
-                      {Boolean(visit.completed) ? "Completed" : "Pending"}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 'bold' }}>{visit.speciality}</span>
+                    <span style={{ color: visit.completed ? 'green' : 'orange' }}>
+                      {visit.completed ? 'Completed' : 'Pending'}
                     </span>
-
-                    <input
-                      type="checkbox"
-                      checked={Boolean(visit.completed)}
-                      onChange={() =>
-                        handleToggleCompleted(visit.id, Boolean(visit.completed))
-                      }
-                    />
                   </div>
-                </div>
-                  <p style={{ margin: '8px 0', color: '#444' }}>
-                    {visit.description}
+                  
+                  <p style={{ margin: '4px 0', fontSize: '0.9em', color: '#0284c7' }}>
+                    <strong>Doctor:</strong> Dr. {visit.doctor_name || 'Unassigned'}
                   </p>
 
+                  <p style={{ margin: '8px 0', color: '#444' }}>{visit.description}</p>
                   <small style={{ color: '#888' }}>
                     Date: {new Date(visit.visit_date).toLocaleString()}
                   </small>
-
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      display: "flex",
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <button
-                      onClick={() => handleDeleteVisit(visit.id)}
-                      style={{
-                        padding: "6px 12px",
-                        backgroundColor: "#dc3545",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Delete Visit
-                    </button>
-                  </div>
                 </li>
               ))}
             </ul>

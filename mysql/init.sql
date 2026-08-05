@@ -4,16 +4,6 @@ CREATE TABLE IF NOT EXISTS patients (
     age INT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS visits (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    patient_id INT NOT NULL,
-    speciality VARCHAR(255) NOT NULL,
-    description TEXT,
-    visit_date DATETIME NOT NULL,
-    completed BOOLEAN NOT NULL DEFAULT FALSE,
-    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE -- If the patient is deleted, delete their visits as well
-);
-
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -21,4 +11,16 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('admin', 'doctor') DEFAULT 'doctor',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS visits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    speciality VARCHAR(255) NOT NULL,
+    description TEXT,
+    visit_date DATETIME NOT NULL,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE, -- If the patient is deleted, delete their visits as well
+    FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE RESTRICT -- If the doctor is deleted, restrict deletion if they have visits associated
 );

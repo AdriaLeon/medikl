@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../db";
-import { authenticate } from "./auth";
+import { authenticate, authorize } from "../middleware/auth";
 
 const router = Router();
 
@@ -156,5 +156,52 @@ router.get("/me", authenticate, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// GET /users/doctors - Retrieve doctors sorted alphabetically
+router.get("/doctors", async (req, res) => {
+  try {
+    const [doctors]: any = await db.query(
+      `SELECT id, username, email 
+       FROM users 
+       WHERE role = 'doctor' 
+       ORDER BY username ASC`
+    );
+    res.json(doctors);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /users/:doctorId/visits
+router.get(
+  "/:doctorId/visits",
+  authenticate,
+  authorize("doctor", "admin"),
+  async (req, res) => {
+    try {
+      const targetDoctorId = Number(req.params.doctorId);
+      const requestingUser = req.user;
+
+      if (isNaN(targetDoctorId)) {
+        return res.status(400).json({ error: "Invalid doctor ID" });
+      }
+
+      const [visits]: any = await db.query(
+        `SELECT v.id, v.speciality, v.description, v.visit_date, v.completed, v.doctor_id, p.id AS patient_id, p.name AS patient_name
+         FROM visits v
+         INNER JOIN patients p ON v.patient_id = p.id
+         WHERE v.doctor_id = ?
+         ORDER BY v.visit_date DESC`,
+        [targetDoctorId]
+      );
+
+      res.json(visits);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
 
 export default router;

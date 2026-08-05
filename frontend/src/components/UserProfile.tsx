@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { VisitList } from './VisitList';
 
 interface UserProfileData {
   id: number;
@@ -55,11 +56,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
     );
   }
 
-  if (error) {
-    return (
-      <div style={styles.container}>
-        <h2 style={styles.title}>User Profile</h2>
-        {/* Fallback to basic session info if /me endpoint fails */}
+  return (
+    <div style={styles.container}>
+      <h2 style={styles.title}>User Profile</h2>
+
+      {error ? (
         <div style={styles.card}>
           <p><strong>Username:</strong> {user.username}</p>
           <p><strong>Role:</strong> {user.role.toUpperCase()}</p>
@@ -67,48 +68,48 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
             Could not load full profile details: {error}
           </p>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>User Profile</h2>
-      
-      <div style={styles.card}>
-        <div style={styles.row}>
-          <span style={styles.label}>User ID:</span>
-          <span style={styles.value}>#{profile?.id}</span>
-        </div>
-
-        <div style={styles.row}>
-          <span style={styles.label}>Username:</span>
-          <span style={styles.value}>{profile?.username}</span>
-        </div>
-
-        <div style={styles.row}>
-          <span style={styles.label}>Email:</span>
-          <span style={styles.value}>{profile?.email}</span>
-        </div>
-
-        <div style={styles.row}>
-          <span style={styles.label}>Role:</span>
-          <span style={{ 
-            ...styles.badge, 
-            backgroundColor: profile?.role === 'admin' ? '#7c3aed' : '#0284c7' 
-          }}>
-            {profile?.role.toUpperCase()}
-          </span>
-        </div>
-
-        {profile?.created_at && (
+      ) : (
+        <div style={styles.card}>
           <div style={styles.row}>
-            <span style={styles.label}>Member Since:</span>
-            <span style={styles.value}>
-              {new Date(profile.created_at).toLocaleDateString()}
+            <span style={styles.label}>User ID:</span>
+            <span style={styles.value}>#{profile?.id}</span>
+          </div>
+
+          <div style={styles.row}>
+            <span style={styles.label}>Username:</span>
+            <span style={styles.value}>{profile?.username}</span>
+          </div>
+
+          <div style={styles.row}>
+            <span style={styles.label}>Email:</span>
+            <span style={styles.value}>{profile?.email}</span>
+          </div>
+
+          <div style={styles.row}>
+            <span style={styles.label}>Role:</span>
+            <span style={{ 
+              ...styles.badge, 
+              backgroundColor: profile?.role === 'admin' ? '#7c3aed' : '#0284c7' 
+            }}>
+              {profile?.role.toUpperCase()}
             </span>
           </div>
-        )}
+
+          {profile?.created_at && (
+            <div style={styles.row}>
+              <span style={styles.label}>Member Since:</span>
+              <span style={styles.value}>
+                {new Date(profile.created_at).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Render visits assigned to this user */}
+      <div style={{ marginTop: '32px' }}>
+        <h3 style={{ ...styles.title, fontSize: '1.25rem' }}>Assigned Visits</h3>
+        <VisitList doctorId={user.id} />
       </div>
     </div>
   );

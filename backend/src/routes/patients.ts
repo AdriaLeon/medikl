@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db";
+import { authenticate, authorize } from "../middleware/auth";
 
 const router = Router();
 
@@ -30,12 +31,13 @@ router.get("/:id", async (req, res) => {
             return;
         }
 
-        // Get visits
+        // Get visits with doctor names
         const [visitRows]: any = await db.query(
-            `SELECT id, speciality, description, visit_date, completed
-             FROM visits
-             WHERE patient_id = ?
-             ORDER BY visit_date DESC`,
+            `SELECT v.id, v.speciality, v.description, v.doctor_id, v.visit_date, v.completed, u.username AS doctor_name
+             FROM visits v
+             LEFT JOIN users u ON v.doctor_id = u.id
+             WHERE v.patient_id = ?
+             ORDER BY v.visit_date DESC`,
             [id]
         );
 
@@ -77,20 +79,14 @@ router.post("/", async (req, res) => {
 });
 
 // POST /patients/:id/visits (Add a new visit to a specific patient)
-router.post("/:id/visits", async (req, res) => {
+router.post("/:id/visits", authenticate, authorize("admin", "doctor"), async (req, res) => {
     try {
         const { id } = req.params;
-        const { speciality, description, visitDate } = req.body;
+        const { speciality, description, visitDate, doctorId } = req.body;
 
-        if (!speciality) {
-            res.status(400).json({ error: "Speciality is required" });
-            return;
-        }
-
-        if (!visitDate) {
-            res.status(400).json({ error: "Visit date is required" });
-            return;
-        }
+        if (!speciality || !visitDate || !doctorId) {
+            return res.status(400).json({ error: "Speciality, visit date, and doctor are required" });
+            }
 
         // Verify patient exists
         const [patient]: any = await db.query("SELECT id FROM patients WHERE id = ?", [id]);
@@ -99,11 +95,20 @@ router.post("/:id/visits", async (req, res) => {
             return;
         }
 
-        // Use NOW() in MySQL to record the current timestamp automatically
+        // Verify selected doctor exists and is actually a doctor
+        const [doctorRows]: any = await db.query(
+        "SELECT id FROM users WHERE id = ? AND role = 'doctor'",
+        [doctorId]
+        );
+
+        if (doctorRows.length === 0) {
+        return res.status(400).json({ error: "Selected user is not a valid doctor" });
+        }
+
         const [result]: any = await db.execute(
-            `INSERT INTO visits (patient_id, speciality, description, visit_date, completed) 
-             VALUES (?, ?, ?, ?, FALSE)`,
-            [id, speciality, description || "", visitDate]
+            `INSERT INTO visits (patient_id, doctor_id, speciality, description, visit_date, completed) 
+             VALUES (?, ?, ?, ?, ?, FALSE)`,
+            [id, doctorId, speciality, description || "", visitDate]
         );
 
         res.status(201).json({
