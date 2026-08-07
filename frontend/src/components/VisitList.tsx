@@ -17,6 +17,9 @@ interface VisitListProps {
   initialVisits?: AssignedVisit[];
 }
 
+type SortField = "date" | "name" | "id";
+type SortOrder = "asc" | "desc";
+
 export const VisitList: React.FC<VisitListProps> = ({
   doctorId,
   initialVisits,
@@ -24,6 +27,9 @@ export const VisitList: React.FC<VisitListProps> = ({
   const [visits, setVisits] = useState<AssignedVisit[]>(initialVisits || []);
   const [loading, setLoading] = useState<boolean>(!initialVisits && !!doctorId);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortField>("date");
+  const [order, setOrder] = useState<SortOrder>("desc");
+  const [hideCompleted, setHideCompleted] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialVisits && !doctorId) {
@@ -36,9 +42,10 @@ export const VisitList: React.FC<VisitListProps> = ({
         try {
           setLoading(true);
           const token = localStorage.getItem("token");
-          
-          // Dynamic URL using doctorId parameter
-          const res = await fetch(`/api/users/${doctorId}/visits`, {
+          const params = new URLSearchParams({ sortBy, order });
+
+          // Dynamic URL using doctorId parameter with sort params
+          const res = await fetch(`/api/users/${doctorId}/visits?${params.toString()}`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -60,7 +67,7 @@ export const VisitList: React.FC<VisitListProps> = ({
 
       fetchDoctorVisits();
     }
-  }, [doctorId, initialVisits]);
+  }, [doctorId, initialVisits, sortBy, order]);
 
   // Toggle handler using your existing /patients/:id/visits/:visitId endpoint
     const handleToggleCompleted = async (visit: AssignedVisit) => {
@@ -97,13 +104,58 @@ export const VisitList: React.FC<VisitListProps> = ({
     }
     };
 
+  // Defensive client-side sort for initialVisits-only path (currently dead code, but safe)
+  const sortedVisits = doctorId
+    ? visits
+    : [...visits].sort((a, b) => {
+        let cmp = 0;
+        if (sortBy === "date") cmp = new Date(a.visit_date).getTime() - new Date(b.visit_date).getTime();
+        else if (sortBy === "name") cmp = (a.patient_name || "").localeCompare(b.patient_name || "");
+        else cmp = a.id - b.id;
+        return order === "asc" ? cmp : -cmp;
+      });
+
+  // Filter to hide completed visits if checkbox is checked
+  const displayedVisits = hideCompleted
+    ? sortedVisits.filter((v) => !v.completed)
+    : sortedVisits;
+
   if (loading) return <p>Loading assigned visits...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (visits.length === 0) return <p>No visits found.</p>;
 
   return (
-    <ul style={{ listStyle: "none", padding: 0 }}>
-      {visits.map((visit) => (
+    <div>
+      <div style={{ display: "flex", gap: "12px", marginBottom: "16px", alignItems: "center" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          Sort by:
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortField)}>
+            <option value="date">Date</option>
+            <option value="name">Patient Name</option>
+            <option value="id">ID</option>
+          </select>
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          Order:
+          <select value={order} onChange={(e) => setOrder(e.target.value as SortOrder)}>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <input
+            type="checkbox"
+            checked={hideCompleted}
+            onChange={(e) => setHideCompleted(e.target.checked)}
+          />
+          Hide completed visits
+        </label>
+      </div>
+
+      {displayedVisits.length === 0 ? (
+        <p>No visits found.</p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {displayedVisits.map((visit) => (
         <li
           key={visit.id}
           style={{
@@ -154,6 +206,8 @@ export const VisitList: React.FC<VisitListProps> = ({
           </small>
         </li>
       ))}
-    </ul>
+        </ul>
+      )}
+    </div>
   );
 };

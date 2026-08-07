@@ -209,12 +209,28 @@ router.get("/:doctorId/visits", authenticate, authorize("doctor", "admin"), asyn
       return res.status(400).json({ error: "Invalid doctor ID" });
     }
 
+    const sortColumns: Record<string, string> = {
+      date: "v.visit_date",
+      name: "p.name",
+      id: "v.id",
+    };
+    const sortDirections: Record<string, string> = {
+      asc: "ASC",
+      desc: "DESC",
+    };
+
+    const sortByParam = typeof req.query.sortBy === "string" ? req.query.sortBy : "date";
+    const orderParam = typeof req.query.order === "string" ? req.query.order : "desc";
+
+    const sortColumn = sortColumns[sortByParam] ?? sortColumns.date;
+    const sortDirection = sortDirections[orderParam] ?? sortDirections.desc;
+
     const [visits]: any = await db.query(
       `SELECT v.id, v.speciality, v.description, v.visit_date, v.completed, v.doctor_id, p.id AS patient_id, p.name AS patient_name
          FROM visits v
          INNER JOIN patients p ON v.patient_id = p.id
          WHERE v.doctor_id = ?
-         ORDER BY v.visit_date DESC`,
+         ORDER BY ${sortColumn} ${sortDirection}`,
       [targetDoctorId]
     );
 
