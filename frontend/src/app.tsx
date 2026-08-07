@@ -7,6 +7,7 @@ import { Navbar } from './components/Navbar';
 import { UserProfile } from './components/UserProfile';
 import { AuthForm } from './components/AuthForm';
 import { UserList } from './components/UserList';
+import { Footer } from './components/Footer';
 
 interface User {
   id: number;
@@ -102,20 +103,20 @@ export default function App() {
   const activeNavView = currentView === 'login'
     ? 'login'
     : currentView === 'register'
-    ? 'register'
-    : currentView === 'profile'
-    ? 'profile'
-    : currentView === 'doctors'
-    ? 'doctors'
-    : selectedPatientId !== null
-    ? 'visits'
-    : 'dashboard';
+      ? 'register'
+      : currentView === 'profile'
+        ? 'profile'
+        : currentView === 'doctors'
+          ? 'doctors'
+          : selectedPatientId !== null
+            ? 'visits'
+            : 'dashboard';
 
   return (
-    <div>
-      <Navbar 
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Navbar
         user={user}
-        onGoHome={handleGoHome} 
+        onGoHome={handleGoHome}
         onOpenLogin={() => setCurrentView('login')}
         onOpenRegister={() => setCurrentView('register')}
         onOpenProfile={() => setCurrentView('profile')}
@@ -124,69 +125,73 @@ export default function App() {
         currentView={activeNavView}
       />
 
-      {/* Render Auth View (Login or Register) */}
-      {(currentView === 'login' || currentView === 'register') && (
-        <AuthForm 
-          initialMode={currentView} 
-          onAuthSuccess={handleAuthSuccess} 
-        />
-      )}
-
-      {/* Render Visits View */}
-      {currentView === 'dashboard' && selectedPatientId !== null && (
-        <PatientVisitsView
-          patientId={selectedPatientId}
-          user={user}
-          onBack={() => setSelectedPatientId(null)}
-        />
-      )}
-
-      {/* Render Profile View with VisitList integration */}
-      {currentView === 'profile' && user && <UserProfile user={user} />}
-
-      {/* Render Doctors List */}
-      {currentView === 'doctors' && selectedDoctorId === null && (
-        <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif' }}>
-          <h1>Doctors</h1>
-          <p style={{ fontSize: '0.9em', color: '#666' }}>Click on a doctor to view their profile and visits.</p>
-          <UserList type="doctor" onSelectUser={setSelectedDoctorId} />
-        </div>
-      )}
-
-      {/* Render Selected Doctor's Profile with their Visits */}
-      {currentView === 'doctors' && selectedDoctorId !== null && (
-        <UserProfile
-          user={user}
-          viewUserId={selectedDoctorId}
-          onBack={() => setSelectedDoctorId(null)}
-        />
-      )}
-
-      {/* Render Main Dashboard */}
-      {currentView === 'dashboard' && selectedPatientId === null && (
-        <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif' }}>
-          <h1>Medikl - Patient Management</h1>
-
-          <PatientForm
-            onPatientCreated={refreshPatients}
-            onError={(err) => setError(err)}
+      <div style={{ flex: 1 }}>
+        {/* Render Auth View (Login or Register) */}
+        {(currentView === 'login' || currentView === 'register') && (
+          <AuthForm
+            initialMode={currentView}
+            onAuthSuccess={handleAuthSuccess}
           />
+        )}
 
-          {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-
-          <h2>Patient List</h2>
-          <p style={{ fontSize: '0.9em', color: '#666' }}>Click on a patient to view their visits.</p>
-
-          <PatientList
-            patients={patients}
-            loading={loading}
+        {/* Render Visits View */}
+        {currentView === 'dashboard' && selectedPatientId !== null && (
+          <PatientVisitsView
+            patientId={selectedPatientId}
             user={user}
-            onSelectPatient={(id) => setSelectedPatientId(id)}
-            onDeletePatient={handleDeletePatient}
-            onDeleteAll={handleDeleteAll}
+            onBack={() => setSelectedPatientId(null)}
           />
-        </div>
-      )}
+        )}
+
+        {/* Render Profile View with VisitList integration */}
+        {currentView === 'profile' && user && <UserProfile user={user} />}
+
+        {/* Render Doctors List */}
+        {currentView === 'doctors' && selectedDoctorId === null && (
+          <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif' }}>
+            <h1>Doctors</h1>
+            <p style={{ fontSize: '0.9em', color: '#666' }}>Click on a doctor to view their profile and visits.</p>
+            <UserList type="doctor" onSelectUser={setSelectedDoctorId} />
+          </div>
+        )}
+
+        {/* Render Selected Doctor's Profile with their Visits */}
+        {currentView === 'doctors' && selectedDoctorId !== null && (
+          <UserProfile
+            user={user}
+            viewUserId={selectedDoctorId}
+            onBack={() => setSelectedDoctorId(null)}
+          />
+        )}
+
+        {/* Render Main Dashboard */}
+        {currentView === 'dashboard' && selectedPatientId === null && (
+          <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif' }}>
+            <h1>Medikl - Patient Management</h1>
+
+            <PatientForm
+              onPatientCreated={refreshPatients}
+              onError={(err) => setError(err)}
+            />
+
+            {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+
+            <h2>Patient List</h2>
+            <p style={{ fontSize: '0.9em', color: '#666' }}>Click on a patient to view their visits.</p>
+
+            <PatientList
+              patients={patients}
+              loading={loading}
+              user={user}
+              onSelectPatient={(id) => setSelectedPatientId(id)}
+              onDeletePatient={handleDeletePatient}
+              onDeleteAll={handleDeleteAll}
+            />
+          </div>
+        )}
+      </div>
+
+      <Footer />
     </div>
   );
 }
