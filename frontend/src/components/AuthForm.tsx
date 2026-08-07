@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface User {
   id: number;
@@ -13,6 +13,10 @@ interface AuthFormProps {
 
 export const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onAuthSuccess }) => {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+
+  // Watches NavBar while AuthForm stays mounted, changes the mode manually
+  useEffect(() => { setMode(initialMode); }, [initialMode]);
+
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,8 +30,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onAut
     setLoading(true);
 
     const endpoint = mode === 'login' ? '/api/users/login' : '/api/users/register';
-    const payload = mode === 'login' 
-      ? { username, password } 
+    const payload = mode === 'login'
+      ? { username, password }
       : { username, email, password, role };
 
     try {
@@ -51,7 +55,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onAut
           body: JSON.stringify({ username, password }),
         });
         const loginData = await loginRes.json();
-        
+
         if (!loginRes.ok) throw new Error(loginData.error || 'Registration succeeded but login failed');
 
         localStorage.setItem('token', loginData.token);
@@ -73,7 +77,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onAut
     <div style={styles.card}>
       <h2 style={{ marginTop: 0 }}>{mode === 'login' ? 'Log In' : 'Create Account'}</h2>
       {error && <p style={styles.error}>{error}</p>}
-      
+
       <form onSubmit={handleSubmit} style={styles.form}>
         <div style={styles.field}>
           <label style={styles.label}>Username</label>

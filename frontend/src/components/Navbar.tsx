@@ -12,8 +12,9 @@ interface NavbarProps {
   onOpenLogin: () => void;
   onOpenRegister: () => void;
   onOpenProfile: () => void;
+  onOpenDoctors: () => void;
   onLogout: () => void;
-  currentView: 'dashboard' | 'profile' | 'login' | 'register' | 'visits';
+  currentView: 'dashboard' | 'profile' | 'login' | 'register' | 'visits' | 'doctors';
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -22,6 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenLogin,
   onOpenRegister,
   onOpenProfile,
+  onOpenDoctors,
   onLogout,
   currentView,
 }) => {
@@ -39,8 +41,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div style={styles.actions}>
         {user ? (
           <>
-            <button 
-              onClick={onOpenProfile} 
+            <button
+              onClick={onOpenDoctors}
+              style={{
+                ...styles.button,
+                ...(currentView === 'doctors' ? styles.activeButton : {})
+              }}
+            >
+              Doctors
+            </button>
+            <button
+              onClick={onOpenProfile}
               style={{
                 ...styles.button,
                 ...(currentView === 'profile' ? styles.activeButton : {})

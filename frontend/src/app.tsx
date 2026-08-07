@@ -6,6 +6,7 @@ import { PatientVisitsView } from './components/PatientVisits';
 import { Navbar } from './components/Navbar';
 import { UserProfile } from './components/UserProfile';
 import { AuthForm } from './components/AuthForm';
+import { UserList } from './components/UserList';
 
 interface User {
   id: number;
@@ -16,7 +17,8 @@ interface User {
 export default function App() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'login' | 'register'>('dashboard');
+  const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'login' | 'register' | 'doctors'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +66,13 @@ export default function App() {
 
   const handleGoHome = () => {
     setSelectedPatientId(null);
+    setSelectedDoctorId(null);
     setCurrentView('dashboard');
+  };
+
+  const handleOpenDoctors = () => {
+    setSelectedDoctorId(null);
+    setCurrentView('doctors');
   };
 
   const handleDeleteAll = async () => {
@@ -91,14 +99,16 @@ export default function App() {
     }
   };
 
-  const activeNavView = currentView === 'login' 
-    ? 'login' 
+  const activeNavView = currentView === 'login'
+    ? 'login'
     : currentView === 'register'
     ? 'register'
-    : currentView === 'profile' 
-    ? 'profile' 
-    : selectedPatientId !== null 
-    ? 'visits' 
+    : currentView === 'profile'
+    ? 'profile'
+    : currentView === 'doctors'
+    ? 'doctors'
+    : selectedPatientId !== null
+    ? 'visits'
     : 'dashboard';
 
   return (
@@ -109,6 +119,7 @@ export default function App() {
         onOpenLogin={() => setCurrentView('login')}
         onOpenRegister={() => setCurrentView('register')}
         onOpenProfile={() => setCurrentView('profile')}
+        onOpenDoctors={handleOpenDoctors}
         onLogout={handleLogout}
         currentView={activeNavView}
       />
@@ -132,6 +143,24 @@ export default function App() {
 
       {/* Render Profile View with VisitList integration */}
       {currentView === 'profile' && user && <UserProfile user={user} />}
+
+      {/* Render Doctors List */}
+      {currentView === 'doctors' && selectedDoctorId === null && (
+        <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif' }}>
+          <h1>Doctors</h1>
+          <p style={{ fontSize: '0.9em', color: '#666' }}>Click on a doctor to view their profile and visits.</p>
+          <UserList type="doctor" onSelectUser={setSelectedDoctorId} />
+        </div>
+      )}
+
+      {/* Render Selected Doctor's Profile with their Visits */}
+      {currentView === 'doctors' && selectedDoctorId !== null && (
+        <UserProfile
+          user={user}
+          viewUserId={selectedDoctorId}
+          onBack={() => setSelectedDoctorId(null)}
+        />
+      )}
 
       {/* Render Main Dashboard */}
       {currentView === 'dashboard' && selectedPatientId === null && (

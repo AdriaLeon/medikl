@@ -173,35 +173,57 @@ router.get("/doctors", async (req, res) => {
   }
 });
 
+// GET /users/:id - full profile for a given user
+router.get("/:id", async (req, res) => {
+  try {
+    const targetId = Number(req.params.id);
+    if (isNaN(targetId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+
+    const [rows]: any = await db.execute(
+      `SELECT id, username, email, role, created_at
+       FROM users
+       WHERE id = ?`,
+      [targetId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(rows[0]);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /users/:doctorId/visits
-router.get(
-  "/:doctorId/visits",
-  authenticate,
-  authorize("doctor", "admin"),
-  async (req, res) => {
-    try {
-      const targetDoctorId = Number(req.params.doctorId);
-      const requestingUser = req.user;
+router.get("/:doctorId/visits", authenticate, authorize("doctor", "admin"), async (req, res) => {
+  try {
+    const targetDoctorId = Number(req.params.doctorId);
+    const requestingUser = req.user;
 
-      if (isNaN(targetDoctorId)) {
-        return res.status(400).json({ error: "Invalid doctor ID" });
-      }
+    if (isNaN(targetDoctorId)) {
+      return res.status(400).json({ error: "Invalid doctor ID" });
+    }
 
-      const [visits]: any = await db.query(
-        `SELECT v.id, v.speciality, v.description, v.visit_date, v.completed, v.doctor_id, p.id AS patient_id, p.name AS patient_name
+    const [visits]: any = await db.query(
+      `SELECT v.id, v.speciality, v.description, v.visit_date, v.completed, v.doctor_id, p.id AS patient_id, p.name AS patient_name
          FROM visits v
          INNER JOIN patients p ON v.patient_id = p.id
          WHERE v.doctor_id = ?
          ORDER BY v.visit_date DESC`,
-        [targetDoctorId]
-      );
+      [targetDoctorId]
+    );
 
-      res.json(visits);
-    } catch (err: any) {
-      console.error(err);
-      res.status(500).json({ error: "Internal server error" });
-    }
+    res.json(visits);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
   }
+}
 );
 
 export default router;

@@ -14,23 +14,34 @@ interface UserProfileProps {
     id: number;
     username: string;
     role: 'admin' | 'doctor';
-  };
+  } | null;
+  viewUserId?: number;
+  onBack?: () => void;
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ user, viewUserId, onBack }) => {
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const targetId = viewUserId ?? user?.id;
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/users/me', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        setLoading(true);
+
+        let res: Response;
+        if (viewUserId) {
+          res = await fetch(`/api/users/${viewUserId}`);
+        } else {
+          const token = localStorage.getItem('token');
+          res = await fetch('/api/users/me', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
 
         if (!res.ok) {
           throw new Error('Failed to load profile details');
@@ -38,6 +49,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
 
         const data = await res.json();
         setProfile(data);
+        setError(null);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -46,11 +58,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
     };
 
     fetchProfile();
-  }, []);
+  }, [viewUserId]);
 
   if (loading) {
     return (
       <div style={styles.container}>
+        {onBack && (
+          <button onClick={onBack} style={styles.backButton}>
+            &larr; Back
+          </button>
+        )}
         <p>Loading profile...</p>
       </div>
     );
@@ -58,12 +75,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
 
   return (
     <div style={styles.container}>
+      {onBack && (
+        <button onClick={onBack} style={styles.backButton}>
+          &larr; Back
+        </button>
+      )}
+
       <h2 style={styles.title}>User Profile</h2>
 
       {error ? (
         <div style={styles.card}>
-          <p><strong>Username:</strong> {user.username}</p>
-          <p><strong>Role:</strong> {user.role.toUpperCase()}</p>
+          {!viewUserId && user && (
+            <>
+              <p><strong>Username:</strong> {user.username}</p>
+              <p><strong>Role:</strong> {user.role.toUpperCase()}</p>
+            </>
+          )}
           <p style={{ color: '#ef4444', fontSize: '0.9rem' }}>
             Could not load full profile details: {error}
           </p>
@@ -109,7 +136,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
       {/* Render visits assigned to this user */}
       <div style={{ marginTop: '32px' }}>
         <h3 style={{ ...styles.title, fontSize: '1.25rem' }}>Assigned Visits</h3>
-        <VisitList doctorId={user.id} />
+        <VisitList doctorId={targetId} />
       </div>
     </div>
   );
@@ -120,6 +147,16 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: '500px',
     margin: '40px auto',
     fontFamily: 'sans-serif',
+  },
+  backButton: {
+    padding: '6px 14px',
+    marginBottom: '16px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#f1f5f9',
+    color: '#334155',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
   },
   title: {
     color: '#0f172a',
